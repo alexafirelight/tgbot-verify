@@ -2,7 +2,7 @@
 import logging
 from functools import partial
 
-from telegram.ext import Application, CommandHandler
+from telegram.ext import Application, CommandHandler, CallbackQueryHandler
 
 from config import BOT_TOKEN
 from database_mysql import Database
@@ -14,15 +14,18 @@ from handlers.user_commands import (
     checkin_command,
     invite_command,
     use_command,
+    buy_command,
 )
 from handlers.verify_commands import (
     verify_command,
     verify2_command,
     verify3_command,
     verify4_command,
+    verify5_command,
     getV4Code_command,
 )
 from handlers.admin_commands import (
+    admin_panel_command,
     addbalance_command,
     block_command,
     white_command,
@@ -31,6 +34,7 @@ from handlers.admin_commands import (
     listkeys_command,
     broadcast_command,
 )
+from handlers.menu_callbacks import menu_callback
 
 # 配置日志
 logging.basicConfig(
@@ -66,15 +70,18 @@ def main():
     application.add_handler(CommandHandler("qd", partial(checkin_command, db=db)))
     application.add_handler(CommandHandler("invite", partial(invite_command, db=db)))
     application.add_handler(CommandHandler("use", partial(use_command, db=db)))
+    application.add_handler(CommandHandler("buy", partial(buy_command, db=db)))
 
     # 注册验证命令
     application.add_handler(CommandHandler("verify", partial(verify_command, db=db)))
     application.add_handler(CommandHandler("verify2", partial(verify2_command, db=db)))
     application.add_handler(CommandHandler("verify3", partial(verify3_command, db=db)))
     application.add_handler(CommandHandler("verify4", partial(verify4_command, db=db)))
+    application.add_handler(CommandHandler("verify5", partial(verify5_command, db=db)))
     application.add_handler(CommandHandler("getV4Code", partial(getV4Code_command, db=db)))
 
     # 注册管理员命令
+    application.add_handler(CommandHandler("admin", partial(admin_panel_command, db=db)))
     application.add_handler(CommandHandler("addbalance", partial(addbalance_command, db=db)))
     application.add_handler(CommandHandler("block", partial(block_command, db=db)))
     application.add_handler(CommandHandler("white", partial(white_command, db=db)))
@@ -82,6 +89,9 @@ def main():
     application.add_handler(CommandHandler("genkey", partial(genkey_command, db=db)))
     application.add_handler(CommandHandler("listkeys", partial(listkeys_command, db=db)))
     application.add_handler(CommandHandler("broadcast", partial(broadcast_command, db=db)))
+
+    # 回调按钮处理（帮助菜单 / 管理员面板）
+    application.add_handler(CallbackQueryHandler(partial(menu_callback, db=db)))
 
     # 注册错误处理器
     application.add_error_handler(error_handler)

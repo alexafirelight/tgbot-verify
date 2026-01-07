@@ -2,16 +2,17 @@
 import logging
 from typing import Optional
 
-from telegram import Update
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
 
-from config import ADMIN_USER_ID
+from config import ADMIN_USER_ID, OWNER_USERNAME
 from database_mysql import Database
-from utils.checks import reject_group_command
+from utils.checks import reject_group_command, ensure_channel_member
 from utils.messages import (
     get_welcome_message,
     get_about_message,
     get_help_message,
+    get_buy_message,
 )
 
 logger = logging.getLogger(__name__)
@@ -20,6 +21,9 @@ logger = logging.getLogger(__name__)
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE, db: Database):
     """处理 /start 命令"""
     if await reject_group_command(update):
+        return
+
+    if not await ensure_channel_member(update, context):
         return
 
     user = update.effective_user
@@ -59,6 +63,9 @@ async def about_command(update: Update, context: ContextTypes.DEFAULT_TYPE, db: 
     if await reject_group_command(update):
         return
 
+    if not await ensure_channel_member(update, context):
+        return
+
     await update.message.reply_text(get_about_message())
 
 
@@ -67,14 +74,39 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE, db: D
     if await reject_group_command(update):
         return
 
+    if not await ensure_channel_member(update, context):
+        return
+
     user_id = update.effective_user.id
     is_admin = user_id == ADMIN_USER_ID
-    await update.message.reply_text(get_help_message(is_admin))
+
+    keyboard = [
+        [
+            InlineKeyboardButton("Gemini One Pro", callback_data="help_verify1"),
+            InlineKeyboardButton("Teacher K12", callback_data="help_verify2"),
+        ],
+        [
+            InlineKeyboardButton("Spotify Student", callback_data="help_verify3"),
+            InlineKeyboardButton("YouTube Student", callback_data="help_verify5"),
+        ],
+        [
+            InlineKeyboardButton("Bolt.new Teacher", callback_data="help_verify4"),
+        ],
+        [
+            InlineKeyboardButton("🛒 购买积分 / Buy Credits", callback_data="help_buy"),
+        ],
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+
+    await update.message.reply_text(get_help_message(is_admin), reply_markup=reply_markup)
 
 
 async def balance_command(update: Update, context: ContextTypes.DEFAULT_TYPE, db: Database):
     """处理 /balance 命令"""
     if await reject_group_command(update):
+        return
+
+    if not await ensure_channel_member(update, context):
         return
 
     user_id = update.effective_user.id
@@ -88,13 +120,25 @@ async def balance_command(update: Update, context: ContextTypes.DEFAULT_TYPE, db
         await update.message.reply_text("请先使用 /start 注册。")
         return
 
-    await update.message.reply_text(
-        f"💰 积分余额\n\n当前积分：{user['balance']} 分"
+    invite_stats = db.get_invitation_stats(user_id)
+
+    msg = (
+        "💰 积分余额\n\n"
+        f"当前积分：{user['balance']} 分\n"
+        f"累计邀请：{invite_stats['total_invites']} 人\n"
+        "邀请奖励：每累计 10 人 +1 积分\n"
     )
+    if invite_stats["total_invites"] > 0 and invite_stats["invites_to_next_credit"] > 0:
+        msg += f"距离下一个邀请积分还差：{invite_stats['invites_to_next_credit']} 人\n"
+
+    await update.message.reply_text(msg)
 
 
 async def checkin_command(update: Update, context: ContextTypes.DEFAULT_TYPE, db: Database):
     """处理 /qd 签到命令 - 临时禁用"""
+    if not await ensure_channel_member(update, context):
+        return
+
     user_id = update.effective_user.id
 
     # 临时禁用签到功能（修复bug中）
@@ -138,6 +182,9 @@ async def invite_command(update: Update, context: ContextTypes.DEFAULT_TYPE, db:
     if await reject_group_command(update):
         return
 
+    if not await ensure_channel_member(update, context):
+        return
+
     user_id = update.effective_user.id
 
     if db.is_user_blocked(user_id):
@@ -153,13 +200,17 @@ async def invite_command(update: Update, context: ContextTypes.DEFAULT_TYPE, db:
 
     await update.message.reply_text(
         f"🎁 您的专属邀请链接：\n{invite_link}\n\n"
-        "每邀请 1 位成功注册，您将获得 2 积分。"
+        "每成功邀请 1 位新用户，您的累计邀请数 +1；\n"
+        "累计满 10 位时将自动发放 1 积分奖励。"
     )
 
 
 async def use_command(update: Update, context: ContextTypes.DEFAULT_TYPE, db: Database):
     """处理 /use 命令 - 使用卡密"""
     if await reject_group_command(update):
+        return
+
+    if not await ensure_channel_member(update, context):
         return
 
     user_id = update.effective_user.id
@@ -194,3 +245,25 @@ async def use_command(update: Update, context: ContextTypes.DEFAULT_TYPE, db: Da
         await update.message.reply_text(
             f"卡密使用成功！\n获得积分：{result}\n当前积分：{user['balance']}"
         )
+
+
+async def buy_command(update: Update, context: ContextTypes.DEFAULT_TYPE, db: Database):
+    """处理 /buy 命令 - 购买积分说明"""
+    if await reject_group_command(update):
+        return
+
+    if not await ensure_channel_member(update, context):
+        return
+
+    text = get_buy_message()
+    keyboard = InlineKeyboardMarkup(
+        [
+            [
+                InlineKeyboardButton(
+                    "联系管理员购买 / Contact @{}".format(OWNER_USERNAME),
+                    url=f"https://t.me/{OWNER_USERNAME}",
+                )
+            ]
+        ]
+    )
+    await update.message.reply_text(text, reply_markup=keyboard)

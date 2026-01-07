@@ -16,6 +16,7 @@ from spotify.sheerid_verifier import SheerIDVerifier as SpotifyVerifier
 from youtube.sheerid_verifier import SheerIDVerifier as YouTubeVerifier
 from Boltnew.sheerid_verifier import SheerIDVerifier as BoltnewVerifier
 from utils.messages import get_insufficient_balance_message, get_verify_usage_message
+from utils.checks import ensure_channel_member
 
 # 尝试导入并发控制，如果失败则使用空实现
 try:
@@ -34,6 +35,9 @@ async def verify_command(update: Update, context: ContextTypes.DEFAULT_TYPE, db:
 
     if db.is_user_blocked(user_id):
         await update.message.reply_text("您已被拉黑，无法使用此功能。")
+        return
+
+    if not await ensure_channel_member(update, context):
         return
 
     if not db.user_exists(user_id):
@@ -112,6 +116,9 @@ async def verify2_command(update: Update, context: ContextTypes.DEFAULT_TYPE, db
         await update.message.reply_text("您已被拉黑，无法使用此功能。")
         return
 
+    if not await ensure_channel_member(update, context):
+        return
+
     if not db.user_exists(user_id):
         await update.message.reply_text("请先使用 /start 注册。")
         return
@@ -188,6 +195,9 @@ async def verify3_command(update: Update, context: ContextTypes.DEFAULT_TYPE, db
         await update.message.reply_text("您已被拉黑，无法使用此功能。")
         return
 
+    if not await ensure_channel_member(update, context):
+        return
+
     if not db.user_exists(user_id):
         await update.message.reply_text("请先使用 /start 注册。")
         return
@@ -229,7 +239,7 @@ async def verify3_command(update: Update, context: ContextTypes.DEFAULT_TYPE, db
 
     try:
         async with semaphore:
-        verifier = SpotifyVerifier(verification_id)
+            verifier = SpotifyVerifier(verification_id)
             result = await asyncio.to_thread(verifier.verify)
 
         db.add_verification(
@@ -269,6 +279,9 @@ async def verify4_command(update: Update, context: ContextTypes.DEFAULT_TYPE, db
 
     if db.is_user_blocked(user_id):
         await update.message.reply_text("您已被拉黑，无法使用此功能。")
+        return
+
+    if not await ensure_channel_member(update, context):
         return
 
     if not db.user_exists(user_id):
@@ -467,6 +480,9 @@ async def verify5_command(update: Update, context: ContextTypes.DEFAULT_TYPE, db
         await update.message.reply_text("您已被拉黑，无法使用此功能。")
         return
 
+    if not await ensure_channel_member(update, context):
+        return
+
     if not db.user_exists(user_id):
         await update.message.reply_text("请先使用 /start 注册。")
         return
@@ -548,6 +564,9 @@ async def getV4Code_command(update: Update, context: ContextTypes.DEFAULT_TYPE, 
 
     if db.is_user_blocked(user_id):
         await update.message.reply_text("您已被拉黑，无法使用此功能。")
+        return
+
+    if not await ensure_channel_member(update, context):
         return
 
     if not db.user_exists(user_id):

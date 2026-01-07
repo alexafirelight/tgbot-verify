@@ -3,19 +3,57 @@ import asyncio
 import logging
 from datetime import datetime
 
-from telegram import Update
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
 
 from config import ADMIN_USER_ID
 from database_mysql import Database
-from utils.checks import reject_group_command
+from utils.checks import reject_group_command, ensure_channel_member
 
 logger = logging.getLogger(__name__)
+
+
+async def admin_panel_command(update: Update, context: ContextTypes.DEFAULT_TYPE, db: Database):
+    """处理 /admin 命令 - 管理员控制台"""
+    if await reject_group_command(update):
+        return
+
+    if not await ensure_channel_member(update, context):
+        return
+
+    user_id = update.effective_user.id
+    if user_id != ADMIN_USER_ID:
+        await update.message.reply_text("您没有权限使用此命令。")
+        return
+
+    keyboard = InlineKeyboardMarkup(
+        [
+            [
+                InlineKeyboardButton("➕ 充值积分", callback_data="admin_help_addbalance"),
+            ],
+            [
+                InlineKeyboardButton("🚫 拉黑用户", callback_data="admin_help_block"),
+                InlineKeyboardButton("✅ 取消拉黑", callback_data="admin_help_white"),
+            ],
+            [
+                InlineKeyboardButton("📢 群发通知", callback_data="admin_help_broadcast"),
+            ],
+        ]
+    )
+
+    await update.message.reply_text(
+        "👑 管理员控制台\n\n"
+        "请选择要查看的操作说明：",
+        reply_markup=keyboard,
+    )
 
 
 async def addbalance_command(update: Update, context: ContextTypes.DEFAULT_TYPE, db: Database):
     """处理 /addbalance 命令 - 管理员增加积分"""
     if await reject_group_command(update):
+        return
+
+    if not await ensure_channel_member(update, context):
         return
 
     user_id = update.effective_user.id
@@ -55,6 +93,9 @@ async def block_command(update: Update, context: ContextTypes.DEFAULT_TYPE, db: 
     if await reject_group_command(update):
         return
 
+    if not await ensure_channel_member(update, context):
+        return
+
     user_id = update.effective_user.id
 
     if user_id != ADMIN_USER_ID:
@@ -85,6 +126,9 @@ async def block_command(update: Update, context: ContextTypes.DEFAULT_TYPE, db: 
 async def white_command(update: Update, context: ContextTypes.DEFAULT_TYPE, db: Database):
     """处理 /white 命令 - 管理员取消拉黑"""
     if await reject_group_command(update):
+        return
+
+    if not await ensure_channel_member(update, context):
         return
 
     user_id = update.effective_user.id
@@ -119,6 +163,9 @@ async def blacklist_command(update: Update, context: ContextTypes.DEFAULT_TYPE, 
     if await reject_group_command(update):
         return
 
+    if not await ensure_channel_member(update, context):
+        return
+
     user_id = update.effective_user.id
 
     if user_id != ADMIN_USER_ID:
@@ -144,6 +191,9 @@ async def blacklist_command(update: Update, context: ContextTypes.DEFAULT_TYPE, 
 async def genkey_command(update: Update, context: ContextTypes.DEFAULT_TYPE, db: Database):
     """处理 /genkey 命令 - 管理员生成卡密"""
     if await reject_group_command(update):
+        return
+
+    if not await ensure_channel_member(update, context):
         return
 
     user_id = update.effective_user.id
@@ -200,6 +250,9 @@ async def listkeys_command(update: Update, context: ContextTypes.DEFAULT_TYPE, d
     if await reject_group_command(update):
         return
 
+    if not await ensure_channel_member(update, context):
+        return
+
     user_id = update.effective_user.id
 
     if user_id != ADMIN_USER_ID:
@@ -239,6 +292,9 @@ async def listkeys_command(update: Update, context: ContextTypes.DEFAULT_TYPE, d
 async def broadcast_command(update: Update, context: ContextTypes.DEFAULT_TYPE, db: Database):
     """处理 /broadcast 命令 - 管理员群发通知"""
     if await reject_group_command(update):
+        return
+
+    if not await ensure_channel_member(update, context):
         return
 
     user_id = update.effective_user.id

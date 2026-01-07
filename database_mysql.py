@@ -159,11 +159,7 @@ class MySQLDatabase:
             )
 
             if invited_by:
-                cursor.execute(
-                    "UPDATE users SET balance = balance + 2 WHERE user_id = %s",
-                    (invited_by,),
-                )
-
+                # 记录邀请关系
                 cursor.execute(
                     """
                     INSERT INTO invitations (inviter_id, invitee_id, created_at)
@@ -171,6 +167,23 @@ class MySQLDatabase:
                     """,
                     (invited_by, user_id),
                 )
+
+                # 每累计 10 个有效邀请，奖励 1 积分
+                cursor.execute(
+                    "SELECT COUNT(*) FROM invitations WHERE inviter_id = %s",
+                    (invited_by,),
+                )
+                total_row = cursor.fetchone()
+                try:
+                    total_invites = int(total_row[0]) if total_row and total_row[0] is not None else 0
+                except (TypeError, ValueError):
+                    total_invites = 0
+
+                if total_invites > 0 and total_invites % 10 == 0:
+                    cursor.execute(
+                        "UPDATE users SET balance = balance + 1 WHERE user_id = %s",
+                        (invited_by,),
+                    )
 
             conn.commit()
             return True
@@ -260,6 +273,39 @@ class MySQLDatabase:
         try:
             cursor.execute("SELECT * FROM users WHERE is_blocked = 1")
             return list(cursor.fetchall())
+        finally:
+            cursor.close()
+            conn.close()
+
+    def get_invitation_stats(self, inviter_id: int) -> Dict[str, int]:
+        """获取用户邀请统计"""
+        conn = self.get_connection()
+        cursor = conn.cursor()
+
+        try:
+            cursor.execute(
+                "SELECT COUNT(*) FROM invitations WHERE inviter_id = %s",
+                (inviter_id,),
+            )
+            row = cursor.fetchone()
+            total_invites = int(row[0]) if row and row[0] is not None else 0
+
+            invite_credits = total_invites // 10
+            next_threshold = (invite_credits + 1) * 10
+            invites_to_next_credit = max(next_threshold - total_invites, 0) if total_invites < next_threshold else 0
+
+            return {
+                "total_invites": total_invites,
+                "invite_credits": invite_credits,
+                "invites_to_next_credit": invites_to_next_credit,
+            }
+        except Exception as e:
+            logger.error(f"获取邀请统计失败: {e}")
+            return {
+                "total_invites": 0,
+                "invite_credits": 0,
+                "invites_to_next_credit": 0,
+            }
         finally:
             cursor.close()
             conn.close()
