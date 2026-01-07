@@ -1,4 +1,4 @@
-"""内联按钮与菜单回调处理"""
+"""Inline button and menu callback handlers."""
 import logging
 from typing import Dict, Tuple
 
@@ -21,7 +21,7 @@ _HELP_VERIFY_MAPPING: Dict[str, Tuple[str, str]] = {
 
 
 async def menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE, db: Database):
-    """处理所有来自菜单/帮助的回调按钮"""
+    """Handle all callback buttons coming from menus/help."""
     query = update.callback_query
     if not query:
         return
@@ -29,21 +29,21 @@ async def menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE, db: 
     await query.answer()
     data = (query.data or "").strip()
 
-    # 各 verify 使用说明
+    # Usage guides for /verify commands
     if data in _HELP_VERIFY_MAPPING:
         command, service_name = _HELP_VERIFY_MAPPING[data]
         text = get_verify_usage_message(command, service_name)
         await query.message.reply_text(text)
         return
 
-    # 购买积分说明
+    # Buy credits
     if data == "help_buy":
         text = get_buy_message()
         keyboard = InlineKeyboardMarkup(
             [
                 [
                     InlineKeyboardButton(
-                        "联系管理员购买 / Contact @{}".format(OWNER_USERNAME),
+                        "Contact admin to buy (@{})".format(OWNER_USERNAME),
                         url=f"https://t.me/{OWNER_USERNAME}",
                     )
                 ]
@@ -52,40 +52,40 @@ async def menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE, db: 
         await query.message.reply_text(text, reply_markup=keyboard)
         return
 
-    # 管理员帮助按钮
+    # Admin help buttons
     if data.startswith("admin_help_"):
         user_id = query.from_user.id
         if user_id != ADMIN_USER_ID:
-            await query.message.reply_text("您没有权限查看此管理操作说明。")
+            await query.message.reply_text("You don't have permission to view this admin help.")
             return
 
         if data == "admin_help_addbalance":
             await query.message.reply_text(
-                "➕ 充值积分说明：\n"
-                "命令格式：/addbalance <用户ID> <积分数量>\n"
-                "示例：/addbalance 123456789 10"
+                "➕ Add credits:\n"
+                "Command: /addbalance <user_id> <amount>\n"
+                "Example: /addbalance 123456789 10"
             )
         elif data == "admin_help_block":
             await query.message.reply_text(
-                "🚫 拉黑用户说明：\n"
-                "命令格式：/block <用户ID>\n"
-                "示例：/block 123456789"
+                "🚫 Block user:\n"
+                "Command: /block <user_id>\n"
+                "Example: /block 123456789"
             )
         elif data == "admin_help_white":
             await query.message.reply_text(
-                "✅ 取消拉黑说明：\n"
-                "命令格式：/white <用户ID>\n"
-                "示例：/white 123456789"
+                "✅ Unblock user:\n"
+                "Command: /white <user_id>\n"
+                "Example: /white 123456789"
             )
         elif data == "admin_help_broadcast":
             await query.message.reply_text(
-                "📢 群发通知说明：\n"
-                "命令格式：/broadcast <文本>\n"
-                "或：回复一条要转发的消息后发送 /broadcast"
+                "📢 Broadcast message:\n"
+                "Command: /broadcast <text>\n"
+                "Or: reply to a message and then send /broadcast"
             )
         else:
-            logger.warning("收到未知的 admin_help 回调数据：%s", data)
+            logger.warning("Received unknown admin_help callback data: %s", data)
 
         return
 
-    logger.warning("收到未知的菜单回调数据：%s", data)
+    logger.warning("Received unknown menu callback data: %s", data)
