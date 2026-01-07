@@ -1,8 +1,8 @@
-"""Telegram 机器人主程序"""
+"""Main entrypoint for the Telegram bot."""
 import logging
 from functools import partial
 
-from telegram.ext import Application, CommandHandler
+from telegram.ext import Application, CommandHandler, CallbackQueryHandler
 
 from config import BOT_TOKEN
 from database_mysql import Database
@@ -14,15 +14,18 @@ from handlers.user_commands import (
     checkin_command,
     invite_command,
     use_command,
+    buy_command,
 )
 from handlers.verify_commands import (
     verify_command,
     verify2_command,
     verify3_command,
     verify4_command,
+    verify5_command,
     getV4Code_command,
 )
 from handlers.admin_commands import (
+    admin_panel_command,
     addbalance_command,
     block_command,
     white_command,
@@ -31,8 +34,9 @@ from handlers.admin_commands import (
     listkeys_command,
     broadcast_command,
 )
+from handlers.menu_callbacks import menu_callback
 
-# 配置日志
+# Configure logging
 logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     level=logging.INFO,
@@ -41,24 +45,24 @@ logger = logging.getLogger(__name__)
 
 
 async def error_handler(update: object, context) -> None:
-    """全局错误处理"""
-    logger.exception("处理更新时发生异常: %s", context.error, exc_info=context.error)
+    """Global error handler for the bot."""
+    logger.exception("Exception while handling update: %s", context.error, exc_info=context.error)
 
 
 def main():
-    """主函数"""
-    # 初始化数据库
+    """Application bootstrap function."""
+    # Initialize database
     db = Database()
 
-    # 创建应用 - 启用并发处理
+    # Create application with concurrent update handling enabled
     application = (
         Application.builder()
         .token(BOT_TOKEN)
-        .concurrent_updates(True)  # 🔥 关键：启用并发处理多个命令
+        .concurrent_updates(True)  # Enable handling multiple updates concurrently
         .build()
     )
 
-    # 注册用户命令（使用 partial 传递 db 参数）
+    # Register user commands (use partial to inject db)
     application.add_handler(CommandHandler("start", partial(start_command, db=db)))
     application.add_handler(CommandHandler("about", partial(about_command, db=db)))
     application.add_handler(CommandHandler("help", partial(help_command, db=db)))
@@ -66,15 +70,18 @@ def main():
     application.add_handler(CommandHandler("qd", partial(checkin_command, db=db)))
     application.add_handler(CommandHandler("invite", partial(invite_command, db=db)))
     application.add_handler(CommandHandler("use", partial(use_command, db=db)))
+    application.add_handler(CommandHandler("buy", partial(buy_command, db=db)))
 
-    # 注册验证命令
+    # Register verification commands
     application.add_handler(CommandHandler("verify", partial(verify_command, db=db)))
     application.add_handler(CommandHandler("verify2", partial(verify2_command, db=db)))
     application.add_handler(CommandHandler("verify3", partial(verify3_command, db=db)))
     application.add_handler(CommandHandler("verify4", partial(verify4_command, db=db)))
+    application.add_handler(CommandHandler("verify5", partial(verify5_command, db=db)))
     application.add_handler(CommandHandler("getV4Code", partial(getV4Code_command, db=db)))
 
-    # 注册管理员命令
+    # Register admin commands
+    application.add_handler(CommandHandler("admin", partial(admin_panel_command, db=db)))
     application.add_handler(CommandHandler("addbalance", partial(addbalance_command, db=db)))
     application.add_handler(CommandHandler("block", partial(block_command, db=db)))
     application.add_handler(CommandHandler("white", partial(white_command, db=db)))
@@ -83,10 +90,13 @@ def main():
     application.add_handler(CommandHandler("listkeys", partial(listkeys_command, db=db)))
     application.add_handler(CommandHandler("broadcast", partial(broadcast_command, db=db)))
 
-    # 注册错误处理器
+    # Callback buttons (help menu / admin panel)
+    application.add_handler(CallbackQueryHandler(partial(menu_callback, db=db)))
+
+    # Register global error handler
     application.add_error_handler(error_handler)
 
-    logger.info("机器人启动中...")
+    logger.info("Bot is starting...")
     application.run_polling(drop_pending_updates=True)
 
 

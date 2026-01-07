@@ -1,23 +1,43 @@
-"""全局配置文件"""
+"""Global configuration for the Telegram bot."""
 import os
 from dotenv import load_dotenv
 
-# 加载 .env 文件
+# Load .env file
 load_dotenv()
 
-# Telegram Bot 配置
+# Telegram Bot configuration
 BOT_TOKEN = os.getenv("BOT_TOKEN", "YOUR_BOT_TOKEN_HERE")
-CHANNEL_USERNAME = os.getenv("CHANNEL_USERNAME", "pk_oa")
-CHANNEL_URL = os.getenv("CHANNEL_URL", "https://t.me/pk_oa")
+CHANNEL_USERNAME = os.getenv("CHANNEL_USERNAME", "your_channel")
+CHANNEL_URL = os.getenv("CHANNEL_URL", "https://t.me/your_channel")
 
-# 管理员配置
+# Optional: channel ID-based membership check (useful for private channels)
+_channel_id_raw = os.getenv("CHANNEL_ID", "").strip()
+# When CHANNEL_ID is empty or "0", treat it as not configured
+if _channel_id_raw and _channel_id_raw not in {"0", "-0"} and _channel_id_raw.lstrip("-").isdigit():
+    CHANNEL_ID = int(_channel_id_raw)
+else:
+    CHANNEL_ID = None
+
+# Optional: backup channel URL
+SECONDARY_CHANNEL_URL = os.getenv("SECONDARY_CHANNEL_URL", "")
+
+# Admin configuration
 ADMIN_USER_ID = int(os.getenv("ADMIN_USER_ID", "123456789"))
+OWNER_USERNAME = os.getenv("OWNER_USERNAME", "Wrymy")
 
-# 积分配置
-VERIFY_COST = 1  # 验证消耗的积分
-CHECKIN_REWARD = 1  # 签到奖励积分
-INVITE_REWARD = 2  # 邀请奖励积分
-REGISTER_REWARD = 1  # 注册奖励积分
+# Credit/points configuration
+VERIFY_COST = 1         # Credits consumed per verification
+CHECKIN_REWARD = 1      # Credits given for daily check-in
+# INVITE_REWARD is used internally in the invitation logic
+# (currently the effective rule is: every 10 successful invites = +1 credit)
+INVITE_REWARD = 2       # Invitation reward coefficient
+REGISTER_REWARD = 1     # Credits given on first registration
 
-# 帮助链接
+# Paid package configuration (display only; actual payments handled manually)
+CREDIT_BRONZE_PRICE = os.getenv("CREDIT_BRONZE_PRICE", "2$")
+CREDIT_BRONZE_CREDITS = int(os.getenv("CREDIT_BRONZE_CREDITS", "1"))
+CREDIT_SILVER_PRICE = os.getenv("CREDIT_SILVER_PRICE", "5$")
+CREDIT_SILVER_CREDITS = int(os.getenv("CREDIT_SILVER_CREDITS", "3"))
+
+# Help / documentation link
 HELP_NOTION_URL = "https://rhetorical-era-3f3.notion.site/dd78531dbac745af9bbac156b51da9cc"

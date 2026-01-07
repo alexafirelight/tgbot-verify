@@ -1,113 +1,168 @@
-"""消息模板"""
-from config import CHANNEL_URL, VERIFY_COST, HELP_NOTION_URL
+"""Message templates for user-facing texts."""
+from config import (
+    CHANNEL_URL,
+    SECONDARY_CHANNEL_URL,
+    VERIFY_COST,
+    HELP_NOTION_URL,
+    REGISTER_REWARD,
+    OWNER_USERNAME,
+    CREDIT_BRONZE_PRICE,
+    CREDIT_BRONZE_CREDITS,
+    CREDIT_SILVER_PRICE,
+    CREDIT_SILVER_CREDITS,
+)
 
 
 def get_welcome_message(full_name: str, invited_by: bool = False) -> str:
-    """获取欢迎消息"""
+    """Return the welcome message shown after /start registration."""
     msg = (
-        f"🎉 欢迎，{full_name}！\n"
-        "您已成功注册，获得 1 积分。\n"
+        f"🎉 Welcome, {full_name}!\n"
+        f"You have successfully registered and received {REGISTER_REWARD} credit(s).\n"
     )
     if invited_by:
-        msg += "感谢通过邀请链接加入，邀请人已获得 2 积分。\n"
+        msg += (
+            "Thank you for joining via an invite link.\n"
+            "The inviter's invite count has increased by 1. "
+            "For every 10 successful invites, they automatically receive 1 extra credit.\n"
+        )
 
     msg += (
-        "\n本机器人可自动完成 SheerID 认证。\n"
-        "快速开始：\n"
-        "/about - 了解机器人功能\n"
-        "/balance - 查看积分余额\n"
-        "/help - 查看完整命令列表\n\n"
-        "获取更多积分：\n"
-        "/qd - 每日签到\n"
-        "/invite - 邀请好友\n"
-        f"加入频道：{CHANNEL_URL}"
+        "\nThis bot can automatically complete SheerID verification.\n"
+        "Quick start:\n"
+        "/about  - Learn what this bot can do\n"
+        "/balance - Check your credit balance\n"
+        "/help   - View the full command list\n\n"
+        "Earn more credits:\n"
+        "/qd      - Daily check-in\n"
+        "/invite  - Invite friends (every 10 successful invites = +1 credit)\n"
+        "/use <code> - Redeem a gift/credit code\n"
+        "/buy     - Buy credit packages\n"
+        f"Join the channel: {CHANNEL_URL}"
     )
+    if SECONDARY_CHANNEL_URL:
+        msg += f"\nBackup channel: {SECONDARY_CHANNEL_URL}"
     return msg
 
 
 def get_about_message() -> str:
-    """获取关于消息"""
-    return (
-        "🤖 SheerID 自动认证机器人\n"
+    """Return the /about message."""
+    msg = (
+        "🤖 SheerID Auto Verification Bot\n"
         "\n"
-        "功能介绍:\n"
-        "- 自动完成 SheerID 学生/教师认证\n"
-        "- 支持 Gemini One Pro、ChatGPT Teacher K12、Spotify Student、YouTube Student、Bolt.new Teacher 认证\n"
+        "What this bot does:\n"
+        "- Automatically completes SheerID student/teacher verification\n"
+        "- Supports Gemini One Pro, ChatGPT Teacher K12, Spotify Student, "
+        "YouTube Student, and Bolt.new Teacher\n"
         "\n"
-        "积分获取:\n"
-        "- 注册赠送 1 积分\n"
-        "- 每日签到 +1 积分\n"
-        "- 邀请好友 +2 积分/人\n"
-        "- 使用卡密（按卡密规则）\n"
-        f"- 加入频道：{CHANNEL_URL}\n"
-        "\n"
-        "使用方法:\n"
-        "1. 在网页开始认证并复制完整的验证链接\n"
-        "2. 发送 /verify、/verify2、/verify3、/verify4 或 /verify5 携带该链接\n"
-        "3. 等待处理并查看结果\n"
-        "4. Bolt.new 认证会自动获取认证码，如需手动查询使用 /getV4Code <verification_id>\n"
-        "\n"
-        "更多命令请发送 /help"
+        "How to get credits:\n"
+        f"- Registration bonus: {REGISTER_REWARD} credit(s)\n"
+        "- Daily check-in: +1 credit\n"
+        "- Invite friends: every 10 successful invites = +1 credit\n"
+        "- Redeem codes (according to code rules)\n"
+        "- Buy credits with /buy (Bronze / Silver packages)\n"
+        f"- Main channel: {CHANNEL_URL}\n"
     )
+    if SECONDARY_CHANNEL_URL:
+        msg += f"- Backup channel: {SECONDARY_CHANNEL_URL}\n"
+
+    msg += (
+        "\n"
+        "How to use verification commands:\n"
+        "1. Start verification on the website and copy the full SheerID URL\n"
+        "2. Send /verify, /verify2, /verify3, /verify4 or /verify5 with that URL\n"
+        "3. Wait for processing and then open the result link\n"
+        "4. For Bolt.new, the code is fetched automatically; "
+        "you can also use /getV4Code <verification_id> later\n"
+        "\n"
+        "You can also send /help and tap the buttons below to see detailed guides "
+        "for each verification type."
+    )
+    return msg
 
 
 def get_help_message(is_admin: bool = False) -> str:
-    """获取帮助消息"""
+    """Return the main help text."""
     msg = (
-        "📖 SheerID 自动认证机器人 - 帮助\n"
+        "📖 SheerID Auto Verification Bot - Help\n"
         "\n"
-        "用户命令:\n"
-        "/start - 开始使用（注册）\n"
-        "/about - 了解机器人功能\n"
-        "/balance - 查看积分余额\n"
-        "/qd - 每日签到（+1积分）\n"
-        "/invite - 生成邀请链接（+2积分/人）\n"
-        "/use <卡密> - 使用卡密兑换积分\n"
-        f"/verify <链接> - Gemini One Pro 认证（-{VERIFY_COST}积分）\n"
-        f"/verify2 <链接> - ChatGPT Teacher K12 认证（-{VERIFY_COST}积分）\n"
-        f"/verify3 <链接> - Spotify Student 认证（-{VERIFY_COST}积分）\n"
-        f"/verify4 <链接> - Bolt.new Teacher 认证（-{VERIFY_COST}积分）\n"
-        f"/verify5 <链接> - YouTube Student Premium 认证（-{VERIFY_COST}积分）\n"
-        "/getV4Code <verification_id> - 获取 Bolt.new 认证码\n"
-        "/help - 查看此帮助信息\n"
-        f"认证失败查看：{HELP_NOTION_URL}\n"
+        "User commands:\n"
+        "/start   - Start using the bot (register)\n"
+        "/about   - Learn what this bot can do\n"
+        "/balance - View your credit balance\n"
+        "/qd      - Daily check-in (+1 credit)\n"
+        "/invite  - Generate an invite link "
+        "(every 10 successful invites = +1 credit)\n"
+        "/use <code> - Redeem a gift/credit code\n"
+        "/buy     - View how to buy credits\n"
+        f"/verify <url>  - Gemini One Pro verification (-{VERIFY_COST} credit)\n"
+        f"/verify2 <url> - ChatGPT Teacher K12 verification "
+        f"(-{VERIFY_COST} credit)\n"
+        f"/verify3 <url> - Spotify Student verification "
+        f"(-{VERIFY_COST} credit)\n"
+        f"/verify4 <url> - Bolt.new Teacher verification "
+        f"(-{VERIFY_COST} credit)\n"
+        f"/verify5 <url> - YouTube Student Premium verification "
+        f"(-{VERIFY_COST} credit)\n"
+        "/getV4Code <verification_id> - Get Bolt.new verification code\n"
+        "/help    - Show this help message\n"
+        f"If verification fails, please read: {HELP_NOTION_URL}\n"
+        "\n"
+        "👇 You can also tap the buttons below to see detailed usage guides "
+        "for each verification type, or to buy credits."
     )
 
     if is_admin:
         msg += (
-            "\n管理员命令:\n"
-            "/addbalance <用户ID> <积分> - 增加用户积分\n"
-            "/block <用户ID> - 拉黑用户\n"
-            "/white <用户ID> - 取消拉黑\n"
-            "/blacklist - 查看黑名单\n"
-            "/genkey <卡密> <积分> [次数] [天数] - 生成卡密\n"
-            "/listkeys - 查看卡密列表\n"
-            "/broadcast <文本> - 向所有用户群发通知\n"
+            "\n\nAdmin commands:\n"
+            "/addbalance <user_id> <amount> - Add credits to a user\n"
+            "/block <user_id>    - Block a user\n"
+            "/white <user_id>    - Unblock a user\n"
+            "/blacklist          - View blocked users\n"
+            "/genkey <code> <credits> [uses] [days] - Create a gift/credit code\n"
+            "/listkeys           - List existing codes\n"
+            "/broadcast <text>   - Broadcast a message to all users\n"
+            "/admin              - Open admin panel (button-based help)\n"
         )
 
     return msg
 
 
 def get_insufficient_balance_message(current_balance: int) -> str:
-    """获取积分不足消息"""
+    """Return the 'insufficient credits' message."""
     return (
-        f"积分不足！需要 {VERIFY_COST} 积分，当前 {current_balance} 积分。\n\n"
-        "获取积分方式:\n"
-        "- 每日签到 /qd\n"
-        "- 邀请好友 /invite\n"
-        "- 使用卡密 /use <卡密>"
+        f"Not enough credits. {VERIFY_COST} credit(s) are required, "
+        f"you currently have {current_balance}.\n\n"
+        "How to get more credits:\n"
+        "- Daily check-in: /qd\n"
+        "- Invite friends: /invite (every 10 successful invites = +1 credit)\n"
+        "- Redeem a code: /use <code>\n"
+        "- Buy credits: /buy or tap the 🛒 Buy Credits button in /help"
     )
 
 
 def get_verify_usage_message(command: str, service_name: str) -> str:
-    """获取验证命令使用说明"""
+    """Return usage instructions for a specific verification command."""
     return (
-        f"使用方法: {command} <SheerID链接>\n\n"
-        "示例:\n"
+        f"Usage: {command} <SheerID URL>\n\n"
+        "Example:\n"
         f"{command} https://services.sheerid.com/verify/xxx/?verificationId=xxx\n\n"
-        "获取验证链接:\n"
-        f"1. 访问 {service_name} 认证页面\n"
-        "2. 开始认证流程\n"
-        "3. 复制浏览器地址栏中的完整 URL\n"
-        f"4. 使用 {command} 命令提交"
+        "How to get the verification URL:\n"
+        f"1. Open the {service_name} verification page\n"
+        "2. Start the verification flow\n"
+        "3. Copy the full URL from your browser's address bar\n"
+        f"4. Send it together with the {command} command"
+    )
+
+
+def get_buy_message() -> str:
+    """Return an explanation of credit purchase options."""
+    return (
+        "🛒 Credit packages\n\n"
+        f"🥉 Bronze: {CREDIT_BRONZE_CREDITS} credit(s) - {CREDIT_BRONZE_PRICE}\n"
+        f"🥈 Silver: {CREDIT_SILVER_CREDITS} credit(s) - {CREDIT_SILVER_PRICE}\n"
+        "🥇 Gold / 💎 Diamond: Large/custom packages, please contact the admin\n\n"
+        "📌 Notes:\n"
+        "• 1 credit = 1 verification (for all /verify commands)\n"
+        "• Every 10 successful invites = +1 extra credit (automatic)\n\n"
+        f"To buy credits, please contact the admin @{OWNER_USERNAME}."
     )

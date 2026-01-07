@@ -1,4 +1,4 @@
-"""SheerID 学生验证主程序"""
+"""SheerID student verification main module (YouTube Premium Student)."""
 import re
 import random
 import logging
@@ -9,7 +9,7 @@ from . import config
 from .name_generator import NameGenerator, generate_email, generate_birth_date
 from .img_generator import generate_psu_email, generate_image
 
-# 配置日志
+# Configure logging
 logging.basicConfig(
     level=logging.INFO,
     format='[%(asctime)s] [%(levelname)s] %(message)s',
@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 
 
 class SheerIDVerifier:
-    """SheerID 学生身份验证器"""
+    """Student identity verifier for the SheerID API."""
 
     def __init__(self, verification_id: str):
         self.verification_id = verification_id
@@ -32,16 +32,17 @@ class SheerIDVerifier:
 
     @staticmethod
     def _generate_device_fingerprint() -> str:
-        chars = '0123456789abcdef'
-        return ''.join(random.choice(chars) for _ in range(32))
+        chars = "0123456789abcdef"
+        return "".join(random.choice(chars) for _ in range(32))
 
     @staticmethod
     def normalize_url(url: str) -> str:
-        """规范化 URL（保留原样）"""
+        """Normalize URL (currently a no-op, kept for compatibility)."""
         return url
 
     @staticmethod
     def parse_verification_id(url: str) -> Optional[str]:
+        """Parse verificationId from a SheerID URL."""
         match = re.search(r"verificationId=([a-f0-9]+)", url, re.IGNORECASE)
         if match:
             return match.group(1)
@@ -50,7 +51,7 @@ class SheerIDVerifier:
     def _sheerid_request(
         self, method: str, url: str, body: Optional[Dict] = None
     ) -> Tuple[Dict, int]:
-        """发送 SheerID API 请求"""
+        """Send a SheerID API request."""
         headers = {
             "Content-Type": "application/json",
         }
@@ -65,11 +66,11 @@ class SheerIDVerifier:
                 data = response.text
             return data, response.status_code
         except Exception as e:
-            logger.error(f"SheerID 请求失败: {e}")
+            logger.error("SheerID request failed: %s", e)
             raise
 
     def _upload_to_s3(self, upload_url: str, img_data: bytes) -> bool:
-        """上传 PNG 到 S3"""
+        """Upload PNG to S3-compatible storage."""
         try:
             headers = {"Content-Type": "image/png"}
             response = self.http_client.put(
@@ -77,7 +78,7 @@ class SheerIDVerifier:
             )
             return 200 <= response.status_code < 300
         except Exception as e:
-            logger.error(f"S3 上传失败: {e}")
+            logger.error("S3 upload failed: %s", e)
             return False
 
     def verify(
@@ -88,7 +89,7 @@ class SheerIDVerifier:
         birth_date: str = None,
         school_id: str = None,
     ) -> Dict:
-        """执行验证流程，移除状态轮询以减少耗时"""
+        """Run the verification flow; no status polling (returns once docs are submitted)."""
         try:
             current_step = "initial"
 
@@ -105,20 +106,20 @@ class SheerIDVerifier:
             if not birth_date:
                 birth_date = generate_birth_date()
 
-            logger.info(f"学生信息: {first_name} {last_name}")
-            logger.info(f"邮箱: {email}")
-            logger.info(f"学校: {school['name']}")
-            logger.info(f"生日: {birth_date}")
-            logger.info(f"验证 ID: {self.verification_id}")
+            logger.info("Student: %s %s", first_name, last_name)
+            logger.info("Email: %s", email)
+            logger.info("School: %s", school["name"])
+            logger.info("Birth date: %s", birth_date)
+            logger.info("Verification ID: %s", self.verification_id)
 
-            # 生成学生证 PNG
-            logger.info("步骤 1/4: 生成学生证 PNG...")
+            # Step 1: generate student card PNG
+            logger.info("Step 1/4: Generating student card PNG...")
             img_data = generate_image(first_name, last_name, school_id)
             file_size = len(img_data)
-            logger.info(f"✅ PNG 大小: {file_size / 1024:.2f}KB")
+            logger.info("✅ PNG size: %.2fKB", file_size / 1024)
 
-            # 提交学生信息
-            logger.info("步骤 2/4: 提交学生信息...")
+            # Step 2: submit student information
+            logger.info("Step 2/4: Submitting student information...")
             step2_body = {
                 "firstName": first_name,
                 "lastName": last_name,
@@ -137,7 +138,11 @@ class SheerIDVerifier:
                     "refererUrl": f"{config.SHEERID_BASE_URL}/verify/{config.PROGRAM_ID}/?verificationId={self.verification_id}",
                     "verificationId": self.verification_id,
                     "flags": '{"collect-info-step-email-first":"default","doc-upload-considerations":"default","doc-upload-may24":"default","doc-upload-redesign-use-legacy-message-keys":false,"docUpload-assertion-checklist":"default","font-size":"default","include-cvec-field-france-student":"not-labeled-optional"}',
-                    "submissionOptIn": "By submitting the personal information above, I acknowledge that my personal information is being collected under the privacy policy of the business from which I am seeking a discount",
+                    "submissionOptIn": (
+                        "By submitting the personal information above, I acknowledge that my personal "
+                        "information is being collected under the privacy policy of the business from which "
+                        "I am seeking a discount"
+                    ),
                 },
             }
 
@@ -148,26 +153,26 @@ class SheerIDVerifier:
             )
 
             if step2_status != 200:
-                raise Exception(f"步骤 2 失败 (状态码 {step2_status}): {step2_data}")
+                raise Exception(f"Step 2 failed (status {step2_status}): {step2_data}")
             if step2_data.get("currentStep") == "error":
                 error_msg = ", ".join(step2_data.get("errorIds", ["Unknown error"]))
-                raise Exception(f"步骤 2 错误: {error_msg}")
+                raise Exception(f"Step 2 error: {error_msg}")
 
-            logger.info(f"✅ 步骤 2 完成: {step2_data.get('currentStep')}")
+            logger.info("✅ Step 2 completed: %s", step2_data.get("currentStep"))
             current_step = step2_data.get("currentStep", current_step)
 
-            # 跳过 SSO（如需要）
+            # Step 3: skip SSO if required
             if current_step in ["sso", "collectStudentPersonalInfo"]:
-                logger.info("步骤 3/4: 跳过 SSO 验证...")
+                logger.info("Step 3/4: Skipping SSO verification...")
                 step3_data, _ = self._sheerid_request(
                     "DELETE",
                     f"{config.SHEERID_BASE_URL}/rest/v2/verification/{self.verification_id}/step/sso",
                 )
-                logger.info(f"✅ 步骤 3 完成: {step3_data.get('currentStep')}")
+                logger.info("✅ Step 3 completed: %s", step3_data.get("currentStep"))
                 current_step = step3_data.get("currentStep", current_step)
 
-            # 上传文档并完成提交
-            logger.info("步骤 4/4: 请求并上传文档...")
+            # Step 4: upload document and complete submission
+            logger.info("Step 4/4: Requesting upload URL and uploading document...")
             step4_body = {
                 "files": [
                     {"fileName": "student_card.png", "mimeType": "image/png", "fileSize": file_size}
@@ -179,33 +184,33 @@ class SheerIDVerifier:
                 step4_body,
             )
             if not step4_data.get("documents"):
-                raise Exception("未能获取上传 URL")
+                raise Exception("Failed to obtain upload URL")
 
             upload_url = step4_data["documents"][0]["uploadUrl"]
-            logger.info("✅ 获取上传 URL 成功")
+            logger.info("✅ Upload URL obtained")
             if not self._upload_to_s3(upload_url, img_data):
-                raise Exception("S3 上传失败")
-            logger.info("✅ 学生证上传成功")
+                raise Exception("S3 upload failed")
+            logger.info("✅ Student card uploaded successfully")
 
             step6_data, _ = self._sheerid_request(
                 "POST",
                 f"{config.SHEERID_BASE_URL}/rest/v2/verification/{self.verification_id}/step/completeDocUpload",
             )
-            logger.info(f"✅ 文档提交完成: {step6_data.get('currentStep')}")
+            logger.info("✅ Document submission completed: %s", step6_data.get("currentStep"))
             final_status = step6_data
 
-            # 不做状态轮询，直接返回等待审核
+            # No polling here; caller can check status later if needed
             return {
                 "success": True,
                 "pending": True,
-                "message": "文档已提交，等待审核",
+                "message": "Documents submitted; waiting for review",
                 "verification_id": self.verification_id,
                 "redirect_url": final_status.get("redirectUrl"),
                 "status": final_status,
             }
 
         except Exception as e:
-            logger.error(f"❌ 验证失败: {e}")
+            logger.error("Verification failed: %s", e)
             return {"success": False, "message": str(e), "verification_id": self.verification_id}
 
 
