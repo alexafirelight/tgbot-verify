@@ -1,14 +1,14 @@
-# SheerID 教师验证配置文件
+# SheerID teacher verification configuration (ChatGPT Teacher K12)
 
-# SheerID API 配置
+# SheerID API configuration
 PROGRAM_ID = '68d47554aa292d20b9bec8f7'
 SHEERID_BASE_URL = 'https://services.sheerid.com'
 MY_SHEERID_URL = 'https://my.sheerid.com'
 
-# 文件大小限制
+# File size limit
 MAX_FILE_SIZE = 1 * 1024 * 1024  # 1MB
 
-# 学校配置（高中）
+# School configuration (high schools)
 SCHOOLS = {
     '3995910': {
         'id': 3995910,
@@ -59,10 +59,10 @@ SCHOOLS = {
         'country': 'US',
         'type': 'HIGH_SCHOOL'
     },
-    
+
 }
 
-# 默认学校
+# Default school ID
 DEFAULT_SCHOOL_ID = '3995910'
 
 

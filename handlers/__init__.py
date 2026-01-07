@@ -1,1 +1,1 @@
-"""命令处理器模块"""
+"""Command handler package for the Telegram bot."""

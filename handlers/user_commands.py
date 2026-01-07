@@ -80,6 +80,7 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE, db: D
     user_id = update.effective_user.id
     is_admin = user_id == ADMIN_USER_ID
 
+    # Keep verification help buttons ordered by command number: /verify, /verify2, /verify3, /verify4, /verify5
     keyboard = [
         [
             InlineKeyboardButton("Gemini One Pro", callback_data="help_verify1"),
@@ -87,10 +88,10 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE, db: D
         ],
         [
             InlineKeyboardButton("Spotify Student", callback_data="help_verify3"),
-            InlineKeyboardButton("YouTube Student", callback_data="help_verify5"),
+            InlineKeyboardButton("Bolt.new Teacher", callback_data="help_verify4"),
         ],
         [
-            InlineKeyboardButton("Bolt.new Teacher", callback_data="help_verify4"),
+            InlineKeyboardButton("YouTube Student", callback_data="help_verify5"),
         ],
         [
             InlineKeyboardButton("🛒 Buy Credits", callback_data="help_buy"),
